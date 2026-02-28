@@ -533,7 +533,6 @@ export default function SessionsPage() {
               }}
             >
               <div className="rr-feature">
-                <div className="rr-feature__icon">✅</div>
                 <h3 style={{ marginTop: 0 }}>Live Feedback</h3>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
