@@ -4,6 +4,7 @@ import LoginPage from "./components/pages/LoginPage";
 import SignupPage from "./components/pages/SignupPage";
 import DashboardPage from "./components/pages/DashboardPage";
 import SessionPage from "./components/pages/SessionPage";
+import TeamsPage from "./components/pages/TeamsPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/session" element={<SessionPage />} />
         <Route path="/sessions" element={<SessionPage />} />
+        <Route path="/teams" element={<TeamsPage />} />
       </Routes>
     </BrowserRouter>
   );
