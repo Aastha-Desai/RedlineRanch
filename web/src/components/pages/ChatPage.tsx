@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./landing.css";
+import heartlyLogo from "../../assets/heartly.png";
 
 const API = "http://localhost:5000";
 
@@ -198,7 +199,7 @@ export default function ChatPage() {
                 {messages.map((msg) => (
                   <div key={msg.id} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
                     {msg.role === "assistant" && (
-                      <img src="../../assets/heartly.png" alt="Heartly" style={{ width: 32, height: 32, borderRadius: "50%", marginRight: 8, flexShrink: 0, marginTop: 2, objectFit: "cover" }} />
+                      <img src={heartlyLogo} alt="Heartly" style={{ width: 32, height: 32, borderRadius: "50%", marginRight: 8, flexShrink: 0, marginTop: 2, objectFit: "cover" }} />
                     )}
                     <div style={{
                       maxWidth: "72%",
