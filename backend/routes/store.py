@@ -6,6 +6,8 @@ from typing import List, Optional
 
 router = APIRouter()
 DB_PATH = "health_data.db"
+ECG_DB_PATH = "ecg_data.db"
+
 
 
 # ── Database setup ────────────────────────────────────────────────────────────
@@ -14,7 +16,6 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def init_db():
     conn = get_db()
@@ -77,14 +78,52 @@ def init_db():
 init_db()
 
 
+ECG_DB_PATH = "ecg_data.db"
+
+def get_ecg_db():
+    conn = sqlite3.connect(ECG_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_ecg_db():
+    conn = get_ecg_db()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ecg_sessions (
+            id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id                  TEXT UNIQUE,
+            start_time                  REAL,
+            end_time                    REAL,
+            average_heart_rate          REAL,
+            sampling_frequency          REAL,
+            number_of_measurements      INTEGER,
+            classification              TEXT,    -- SinusRhythm, AtrialFibrillation, Inconclusive, etc.
+            symptom_status              TEXT,    -- NotSet, None, Present
+            device_name                 TEXT,
+            device_hardware_version     TEXT,
+            device_software_version     TEXT,
+            algorithm_version           TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ecg_samples (
+            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id            TEXT,
+            time_since_start_ms   REAL,    -- milliseconds since recording start
+            micro_volts           REAL,    -- voltage in microvolts
+            FOREIGN KEY (session_id) REFERENCES ecg_sessions(session_id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+init_ecg_db()
+
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
-class ECGSession(BaseModel):
-    session_id: str
-    start_time: float
-    end_time: float
-    samples: List[float]
-    sample_rate_hz: Optional[float] = 250.0
 
 
 class WorkoutMetricSnapshot(BaseModel):
@@ -116,6 +155,116 @@ class HealthKitPayload(BaseModel):
     vo2Max: float = None
 
 
+class ECGSession(BaseModel):
+    session_id: str
+    start_time: float
+    end_time: float
+    average_heart_rate: float | None = None
+    sampling_frequency: float | None = 512.0
+    number_of_measurements: int | None = None
+    classification: str | None = None        # "SinusRhythm", "AtrialFibrillation", "Inconclusive"
+    symptom_status: str | None = None        # "NotSet", "None", "Present"
+    device_name: str | None = None
+    device_hardware_version: str | None = None
+    device_software_version: str | None = None
+    algorithm_version: str | None = None
+    samples: list[float] = []               # microvolts values (~15,404 of them)
+
+@router.post("/store/ecg")
+def store_ecg(data: ECGSession):
+    conn = get_ecg_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO ecg_sessions 
+            (session_id, start_time, end_time, average_heart_rate, sampling_frequency,
+             number_of_measurements, classification, symptom_status, device_name,
+             device_hardware_version, device_software_version, algorithm_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            data.session_id, data.start_time, data.end_time,
+            data.average_heart_rate, data.sampling_frequency,
+            data.number_of_measurements or len(data.samples),
+            data.classification, data.symptom_status,
+            data.device_name, data.device_hardware_version,
+            data.device_software_version, data.algorithm_version
+        ))
+    except sqlite3.IntegrityError:
+        conn.close()
+        raise HTTPException(status_code=400, detail=f"Session '{data.session_id}' already exists")
+
+    interval_ms = 1000.0 / (data.sampling_frequency or 512.0)
+    rows = [
+        (data.session_id, i * interval_ms, value)
+        for i, value in enumerate(data.samples)
+    ]
+    cursor.executemany(
+        "INSERT INTO ecg_samples (session_id, time_since_start_ms, micro_volts) VALUES (?, ?, ?)",
+        rows
+    )
+
+    conn.commit()
+    conn.close()
+    return {
+        "status": "ok",
+        "session_id": data.session_id,
+        "samples_stored": len(rows),
+        "classification": data.classification
+    }
+
+@router.get("/ecg/latest")
+def get_latest_ecg():
+    conn = get_ecg_db()
+    cursor = conn.cursor()
+
+    # Get the most recent session
+    session = cursor.execute('''
+        SELECT * FROM ecg_sessions 
+        ORDER BY start_time DESC 
+        LIMIT 1
+    ''').fetchone()
+
+    if not session:
+        conn.close()
+        raise HTTPException(status_code=404, detail="No ECG sessions found")
+
+    samples = cursor.execute('''
+        SELECT time_since_start_ms, micro_volts 
+        FROM ecg_samples 
+        WHERE session_id = ?
+        ORDER BY time_since_start_ms ASC
+    ''', (session["session_id"],)).fetchall()
+
+    conn.close()
+
+    return {
+        "session": dict(session),
+        "samples": [{"t": row["time_since_start_ms"], "v": row["micro_volts"]} for row in samples]
+    }
+
+@router.get("/ecg/sessions")
+def get_ecg_sessions():
+    conn = get_ecg_db()
+    cursor = conn.cursor()
+    sessions = cursor.execute(
+        "SELECT * FROM ecg_sessions ORDER BY start_time DESC"
+    ).fetchall()
+    conn.close()
+    return {"sessions": [dict(s) for s in sessions]}
+
+
+@router.get("/ecg/{session_id}")
+def get_ecg_session(session_id: str):
+    conn = get_ecg_db()
+    cursor = conn.cursor()
+    samples = cursor.execute(
+        "SELECT time_since_start_ms as t, micro_volts as v FROM ecg_samples WHERE session_id = ? ORDER BY t ASC",
+        (session_id,)
+    ).fetchall()
+    conn.close()
+    return {"samples": [dict(s) for s in samples]}
+
 # ── General routes ────────────────────────────────────────────────────────────
 
 @router.get("/store/sessions/all")
@@ -145,34 +294,6 @@ def get_latest():
 
 
 # ── ECG routes ────────────────────────────────────────────────────────────────
-
-@router.post("/store/ecg")
-def store_ecg(data: ECGSession):
-    conn = get_db()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(
-            "INSERT INTO ecg_sessions (session_id, start_time, end_time) VALUES (?, ?, ?)",
-            (data.session_id, data.start_time, data.end_time)
-        )
-    except sqlite3.IntegrityError:
-        conn.close()
-        raise HTTPException(status_code=400, detail=f"Session '{data.session_id}' already exists")
-
-    interval = 1.0 / (data.sample_rate_hz or 250.0)
-    rows = [
-        (data.session_id, data.start_time + i * interval, value)
-        for i, value in enumerate(data.samples)
-    ]
-    cursor.executemany(
-        "INSERT INTO ecg_samples (session_id, timestamp, sample_value) VALUES (?, ?, ?)",
-        rows
-    )
-
-    conn.commit()
-    conn.close()
-    return {"status": "ok", "session_id": data.session_id, "samples_stored": len(rows)}
 
 
 @router.get("/store/ecg/{session_id}")

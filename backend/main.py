@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.store import router
+from routes.store import router
+from routes.gemini import router as gemini_router  # add this
 
 app = FastAPI()
 
@@ -12,3 +14,4 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(gemini_router)  

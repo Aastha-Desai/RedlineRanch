@@ -17,7 +17,7 @@ export default function TeamsPage() {
   const [team, setTeam] = useState<Team | null>(null);
 
   // Fake leaderboard data
-  const [leaderboard, setLeaderboard] = useState<Team[]>([
+  const [leaderboard, _setLeaderboard] = useState<Team[]>([
     { id: "1", name: "Canyon Crushers", points: 1240 },
     { id: "2", name: "Wild West Warriors", points: 980 },
     { id: "3", name: "Rhythm Riders", points: 870 },
