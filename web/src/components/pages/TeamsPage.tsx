@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-export default function TeamsPage() {
-  return (
-    <div className="teams-page">
-      <h1>Teams Page</h1>
-      <p>This is the Teams page content.</p>
-=======
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./landing.css";
@@ -183,7 +176,6 @@ export default function TeamsPage() {
           </div>
         </section>
       </main>
->>>>>>> refs/remotes/origin/main
     </div>
   );
 }
