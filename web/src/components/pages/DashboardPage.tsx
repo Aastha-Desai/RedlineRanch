@@ -137,6 +137,9 @@ export default function DashboardPage() {
 
           <div />
           <div className="rr-nav__cta">
+            <Link className="rr-btn rr-btn--ghost rr-btn--nav" to="/chat">
+            🤠 Talk to Heartly
+            </Link>
             <Link className="rr-btn rr-btn--ghost rr-btn--nav" to="/sessions">
               Sessions
             </Link>

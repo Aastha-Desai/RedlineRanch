@@ -6,6 +6,7 @@ import DashboardPage from "./components/pages/DashboardPage";
 import SessionPage from "./components/pages/SessionPage";
 import ECGCollection from "./components/pages/ECGCollection";
 import TeamsPage from "./components/pages/TeamsPage";
+import ChatPage from "./components/pages/ChatPage";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/sessions" element={<SessionPage />} />
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/ecg" element={<ECGCollection />} />
+        <Route path="/chat" element={<ChatPage />} />
       </Routes>
     </BrowserRouter>
   );
