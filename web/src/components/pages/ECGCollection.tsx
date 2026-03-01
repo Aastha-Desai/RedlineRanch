@@ -22,6 +22,22 @@ const CLASSIFICATION_LABELS: Record<string, string> = {
   NotSet: "Unknown",
 };
 
+const BEAT_COLORS: Record<string, string> = {
+  Normal:           "#00ff9d",
+  Supraventricular: "#ffaa00",
+  Ventricular:      "#ff4466",
+  Fusion:           "#aa66ff",
+  Unknown:          "#888",
+};
+
+const BEAT_LABELS: Record<string, string> = {
+  Normal:           "Normal (N)",
+  Supraventricular: "Supraventricular Ectopic (S)",
+  Ventricular:      "Ventricular Ectopic (V)",
+  Fusion:           "Fusion (F)",
+  Unknown:          "Unknown (Q)",
+};
+
 interface Sample { t: number; v: number; }
 interface ECGSession {
   session_id: string;
@@ -32,6 +48,17 @@ interface ECGSession {
   sampling_frequency: number | null;
   number_of_measurements: number | null;
   device_name: string | null;
+}
+
+interface BeatScore {
+  label: string;
+  confidence: number;
+}
+
+interface AnalysisResult {
+  prediction: string;
+  confidence: number;
+  all_scores: BeatScore[];
 }
 
 function ECGCanvas({ samples }: { samples: Sample[] }) {
@@ -63,7 +90,6 @@ function ECGCanvas({ samples }: { samples: Sample[] }) {
     function draw() {
       ctx.clearRect(0, 0, W, H);
 
-      // Grid
       ctx.strokeStyle = "rgba(255,255,255,0.04)";
       ctx.lineWidth = 1;
       for (let x = 0; x < W; x += 40) {
@@ -73,7 +99,6 @@ function ECGCanvas({ samples }: { samples: Sample[] }) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      // Baseline
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
       ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
 
@@ -81,7 +106,6 @@ function ECGCanvas({ samples }: { samples: Sample[] }) {
       const slice = samples.slice(start, start + VISIBLE);
       if (slice.length < 2) return;
 
-      // Glow passes
       [
         { width: 8, alpha: 0.06 },
         { width: 4, alpha: 0.18 },
@@ -103,7 +127,6 @@ function ECGCanvas({ samples }: { samples: Sample[] }) {
         ctx.globalAlpha = 1;
       });
 
-      // Scan line
       const scanX = (((offsetRef.current % VISIBLE) / VISIBLE) * W + W) % W;
       const grad = ctx.createLinearGradient(scanX - 80, 0, scanX, 0);
       grad.addColorStop(0, "transparent");
@@ -137,6 +160,9 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
   const [samples, setSamples] = useState<Sample[]>([]);
   const [expanded, setExpanded] = useState(isLatest);
   const [loading, setLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
   const classification = session.classification || "NotSet";
   const color = CLASSIFICATION_COLORS[classification] || "#888";
   const label = CLASSIFICATION_LABELS[classification] || classification;
@@ -154,6 +180,26 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
         setLoading(false);
       });
   }, [expanded, session.session_id]);
+
+  async function runAnalysis() {
+    if (samples.length === 0) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${API_BASE}/ecg/analyze/${session.session_id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ samples }),
+      });
+      console.log("STATUS:", res.status);
+      const data = await res.json();
+      console.log("RAW RESPONSE:", data);
+      setAnalysis(data);
+    } catch (e) {
+      console.error("FETCH ERROR:", e);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   return (
     <div
@@ -177,7 +223,6 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
           userSelect: "none",
         }}
       >
-        {/* Classification dot */}
         <div style={{
           width: 10, height: 10, borderRadius: "50%",
           background: color, flexShrink: 0,
@@ -214,7 +259,7 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
         </div>
       </div>
 
-      {/* Waveform */}
+      {/* Waveform + Analysis */}
       {expanded && (
         <div style={{ padding: "0 20px 20px" }}>
           <div style={{
@@ -235,6 +280,8 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
               </div>
             )}
           </div>
+
+          {/* Stat pills */}
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
             {session.sampling_frequency && (
               <div className="rr-mini" style={{ flex: "1 1 120px" }}>
@@ -252,6 +299,84 @@ function SessionCard({ session, isLatest }: { session: ECGSession; isLatest: boo
               <div className="rr-mini__k">Duration</div>
               <div className="rr-mini__v">{Math.round(session.end_time - session.start_time)}s</div>
             </div>
+          </div>
+
+          {/* ML Analysis */}
+          <div style={{ marginTop: 14 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); runAnalysis(); }}
+              disabled={analyzing || samples.length === 0}
+              style={{
+                background: analyzing ? "rgba(232,0,61,.3)" : "#e8003d",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                padding: "10px 22px",
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: analyzing || samples.length === 0 ? "not-allowed" : "pointer",
+                letterSpacing: 0.5,
+                transition: "background .2s",
+              }}
+            >
+              {analyzing ? "Analyzing…" : "🧠 Analyze with ML Model"}
+            </button>
+
+            {analysis && (
+              <div style={{
+                marginTop: 14,
+                padding: 16,
+                borderRadius: 12,
+                background: "rgba(0,0,0,.4)",
+                border: "1px solid rgba(255,255,255,.08)",
+              }}>
+                <div style={{ fontWeight: 800, fontSize: 11, color: "rgba(255,255,255,.4)", letterSpacing: 1.5, marginBottom: 12 }}>
+                  MODEL ANALYSIS
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: "50%",
+                    background: BEAT_COLORS[analysis.prediction] || "#888",
+                    boxShadow: `0 0 8px ${BEAT_COLORS[analysis.prediction] || "#888"}`,
+                    flexShrink: 0,
+                  }} />
+                  <div style={{ fontWeight: 900, fontSize: 18, color: "#fff" }}>
+                    {BEAT_LABELS[analysis.prediction] || analysis.prediction}
+                  </div>
+                  <div style={{ marginLeft: "auto", fontWeight: 800, fontSize: 14, color: "#e8003d" }}>
+                    {(analysis.confidence * 100).toFixed(1)}%
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {analysis.all_scores.map((s) => (
+                    <div key={s.label}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,.5)", marginBottom: 4 }}>
+                        <span>{BEAT_LABELS[s.label] || s.label}</span>
+                        <span style={{ color: BEAT_COLORS[s.label] || "#888" }}>
+                          {(s.confidence * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,.07)" }}>
+                        <div style={{
+                          height: "100%",
+                          borderRadius: 4,
+                          width: `${(s.confidence * 100).toFixed(1)}%`,
+                          background: BEAT_COLORS[s.label] || "#888",
+                          boxShadow: `0 0 6px ${BEAT_COLORS[s.label] || "#888"}`,
+                          transition: "width 0.6s ease",
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 14, fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.25)", lineHeight: 1.6 }}>
+                  ⚠ For informational purposes only. Not a substitute for professional medical advice.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -297,7 +422,6 @@ export default function ECGCollection() {
               Each ECG is a snapshot of your heart's electrical activity, recorded directly from your wrist.
             </p>
 
-            {/* What is ECG */}
             <div className="rr-feature" style={{ marginTop: 24 }}>
               <h3 style={{ marginTop: 0 }}>What is ECG Collection?</h3>
               <p style={{ color: "rgba(255,255,255,.72)", fontWeight: 700, lineHeight: 1.7, margin: 0 }}>
@@ -325,7 +449,6 @@ export default function ECGCollection() {
               </div>
             </div>
 
-            {/* Records */}
             <div className="rr-feature" style={{ marginTop: 18 }}>
               <h3 style={{ marginTop: 0 }}>
                 Your ECG Records
