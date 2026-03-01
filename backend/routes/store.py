@@ -107,13 +107,41 @@ class WorkoutSession(BaseModel):
 
 # camelCase model to match exactly what the iPhone sends
 class HealthKitPayload(BaseModel):
-    heartRate: float = 0
-    hrv: float = 0
-    oxygenSat: float = 0
-    restingHeartRate: float = 0
-    heartRateRecovery: float = 0
+    heartRate: float = None
+    hrv: float = None
+    oxygenSat: float = None
+    restingHeartRate: float = None
+    heartRateRecovery: float = None
     afibBurden: float = 0
-    vo2Max: float = 0
+    vo2Max: float = None
+
+
+# ── General routes ────────────────────────────────────────────────────────────
+
+@router.get("/store/sessions/all")
+def list_all_sessions():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT session_id, start_time, end_time FROM ecg_sessions ORDER BY start_time DESC")
+    ecg = [dict(r) for r in cursor.fetchall()]
+    cursor.execute("SELECT session_id, start_time, end_time FROM workout_sessions ORDER BY start_time DESC")
+    workouts = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return {"ecg_sessions": ecg, "workout_sessions": workouts}
+
+
+@router.get("/store/latest")
+def get_latest():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM workout_metrics WHERE session_id = 'live' ORDER BY timestamp DESC LIMIT 1"
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="No data yet")
+    return dict(row)
 
 
 # ── ECG routes ────────────────────────────────────────────────────────────────
@@ -248,6 +276,9 @@ def get_workout(session_id: str):
 
 @router.post("/store")
 def store_healthkit(data: HealthKitPayload):
+    if not data.heartRate or data.heartRate <= 0:
+        return {"status": "ignored", "reason": "no_active_reading"}
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
@@ -272,19 +303,7 @@ def store_healthkit(data: HealthKitPayload):
     return {"status": "ok"}
 
 
-# ── General ───────────────────────────────────────────────────────────────────
-
-@router.get("/store/sessions/all")
-def list_all_sessions():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT session_id, start_time, end_time FROM ecg_sessions")
-    ecg = [dict(r) for r in cursor.fetchall()]
-    cursor.execute("SELECT session_id, start_time, end_time FROM workout_sessions")
-    workouts = [dict(r) for r in cursor.fetchall()]
-    conn.close()
-    return {"ecg_sessions": ecg, "workout_sessions": workouts}
-
+# ── Delete route ──────────────────────────────────────────────────────────────
 
 @router.delete("/store/{session_type}/{session_id}")
 def delete_session(session_type: str, session_id: str):
