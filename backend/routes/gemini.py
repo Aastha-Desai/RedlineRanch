@@ -1,7 +1,11 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from google import genai
+from dotenv import load_dotenv
+from pathlib import Path
 import os
+
+load_dotenv(Path(__file__).parent / ".env")
 
 router = APIRouter(prefix="/gemini", tags=["gemini"])
 
@@ -10,14 +14,9 @@ class ChatRequest(BaseModel):
 
 @router.post("/chat")
 async def chat(body: ChatRequest):
-    client
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        return {"error": "GEMINI_API_KEY not set"}
-    
-    client = genai.Client(os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=body.message,
     )
     return {"reply": response.text}
