@@ -78,7 +78,7 @@ const EDGES: Array<[string, string]> = [
 
 function HeartRateGraph({ metrics }: { metrics: any[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const points = metrics.filter(m => m.heart_rate > 0).slice(-50);
+  const points = metrics.filter((m) => m.heart_rate > 0).slice(-50);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -98,16 +98,15 @@ function HeartRateGraph({ metrics }: { metrics: any[] }) {
       return;
     }
 
-    const minHR = Math.min(...points.map(p => p.heart_rate)) - 10;
-    const maxHR = Math.max(...points.map(p => p.heart_rate)) + 10;
+    const minHR = Math.min(...points.map((p) => p.heart_rate)) - 10;
+    const maxHR = Math.max(...points.map((p) => p.heart_rate)) + 10;
     const pad = { top: 16, bottom: 28, left: 40, right: 12 };
     const gW = W - pad.left - pad.right;
     const gH = H - pad.top - pad.bottom;
 
-    // grid lines
     ctx.strokeStyle = "rgba(255,255,255,.06)";
     ctx.lineWidth = 1;
-    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+    [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
       const y = pad.top + gH * t;
       ctx.beginPath();
       ctx.moveTo(pad.left, y);
@@ -116,21 +115,27 @@ function HeartRateGraph({ metrics }: { metrics: any[] }) {
       ctx.fillStyle = "rgba(255,255,255,.3)";
       ctx.font = "10px sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(Math.round(maxHR - t * (maxHR - minHR)).toString(), pad.left - 4, y + 4);
+      ctx.fillText(
+        Math.round(maxHR - t * (maxHR - minHR)).toString(),
+        pad.left - 4,
+        y + 4
+      );
     });
 
-    // x axis labels
     ctx.fillStyle = "rgba(255,255,255,.3)";
     ctx.font = "10px sans-serif";
     ctx.textAlign = "center";
-    [0, Math.floor(points.length / 2), points.length - 1].forEach(i => {
+    [0, Math.floor(points.length / 2), points.length - 1].forEach((i) => {
       if (!points[i]) return;
       const x = pad.left + (i / (points.length - 1)) * gW;
       const t = new Date(points[i].timestamp * 1000);
-      ctx.fillText(`${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")}`, x, H - 4);
+      ctx.fillText(
+        `${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")}`,
+        x,
+        H - 4
+      );
     });
 
-    // gradient fill
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + gH);
     grad.addColorStop(0, "rgba(255,176,32,.35)");
     grad.addColorStop(1, "rgba(255,176,32,.0)");
@@ -138,7 +143,10 @@ function HeartRateGraph({ metrics }: { metrics: any[] }) {
     ctx.beginPath();
     points.forEach((p, i) => {
       const x = pad.left + (i / (points.length - 1)) * gW;
-      const y = pad.top + gH - ((p.heart_rate - minHR) / (maxHR - minHR)) * gH;
+      const y =
+        pad.top +
+        gH -
+        ((p.heart_rate - minHR) / (maxHR - minHR)) * gH;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
     ctx.lineTo(pad.left + gW, pad.top + gH);
@@ -147,42 +155,73 @@ function HeartRateGraph({ metrics }: { metrics: any[] }) {
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // line
     ctx.beginPath();
     ctx.strokeStyle = "rgba(255,176,32,.9)";
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
     points.forEach((p, i) => {
       const x = pad.left + (i / (points.length - 1)) * gW;
-      const y = pad.top + gH - ((p.heart_rate - minHR) / (maxHR - minHR)) * gH;
+      const y =
+        pad.top +
+        gH -
+        ((p.heart_rate - minHR) / (maxHR - minHR)) * gH;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
     ctx.stroke();
 
-    // latest dot
     const last = points[points.length - 1];
     const lx = pad.left + gW;
-    const ly = pad.top + gH - ((last.heart_rate - minHR) / (maxHR - minHR)) * gH;
+    const ly =
+      pad.top +
+      gH -
+      ((last.heart_rate - minHR) / (maxHR - minHR)) * gH;
     ctx.beginPath();
     ctx.arc(lx, ly, 4, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255,176,32,1)";
     ctx.fill();
-
   }, [points]);
 
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ color: "rgba(255,255,255,.72)", fontWeight: 700, fontSize: 13 }}>Heart Rate Over Time</span>
-        <span style={{ color: "rgba(255,176,32,.9)", fontWeight: 800, fontSize: 13 }}>
-          {points.length > 0 ? `${points[points.length - 1].heart_rate.toFixed(0)} bpm` : "-- bpm"}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <span
+          style={{
+            color: "rgba(255,255,255,.72)",
+            fontWeight: 700,
+            fontSize: 13,
+          }}
+        >
+          Heart Rate Over Time
+        </span>
+        <span
+          style={{
+            color: "rgba(255,176,32,.9)",
+            fontWeight: 800,
+            fontSize: 13,
+          }}
+        >
+          {points.length > 0
+            ? `${points[points.length - 1].heart_rate.toFixed(0)} bpm`
+            : "-- bpm"}
         </span>
       </div>
       <canvas
         ref={canvasRef}
         width={600}
         height={140}
-        style={{ width: "100%", height: 140, borderRadius: 12, background: "rgba(255,255,255,.03)" }}
+        style={{
+          width: "100%",
+          height: 140,
+          borderRadius: 12,
+          background: "rgba(255,255,255,.03)",
+        }}
       />
     </div>
   );
@@ -214,8 +253,11 @@ export default function SessionsPage() {
     []
   );
 
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseKey>("squat");
-  const [status, setStatus] = useState<"idle" | "loading" | "running" | "error">("idle");
+  const [selectedExercise, setSelectedExercise] =
+    useState<ExerciseKey>("squat");
+  const [status, setStatus] = useState<"idle" | "loading" | "running" | "error">(
+    "idle"
+  );
   const [repCount, setRepCount] = useState(0);
   const [hint, setHint] = useState<string>("");
   const [debug, setDebug] = useState<string>("");
@@ -228,39 +270,44 @@ export default function SessionsPage() {
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const phaseRef = useRef<"up" | "down">("up");
+  // rep state
   const repArmedRef = useRef(true);
   const lastRepTimeRef = useRef(0);
 
-  // ✅ NEW: points per rep (you can tweak these)
+  // ✅ TF stability: prevent overlapping async loops + throttle UI updates
+  const processingRef = useRef(false);
+  const lastUiUpdateRef = useRef(0);
+
+  // points per rep
   function pointsPerRep(ex: ExerciseKey) {
     if (ex === "squat") return 10;
     if (ex === "pushup") return 15;
-    return 12; // jumping_jacks
+    return 12;
   }
 
-  // ✅ NEW: safely add points to the currently selected team (rr_team)
   function awardTeamPoints(points: number) {
     try {
       const raw = localStorage.getItem("rr_team");
-      if (!raw) return; // no team selected yet
+      if (!raw) return;
       const team = JSON.parse(raw);
-      const next = {
-        ...team,
-        points: (Number(team.points) || 0) + points,
-      };
+      const next = { ...team, points: (Number(team.points) || 0) + points };
       localStorage.setItem("rr_team", JSON.stringify(next));
     } catch {
-      // ignore storage errors in demo mode
+      // ignore
     }
   }
 
   async function setupCamera() {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 540 } },
+      video: {
+        facingMode: "user",
+        width: { ideal: 640 },
+        height: { ideal: 360 },
+      },
       audio: false,
     });
     streamRef.current = stream;
+
     const v = videoRef.current!;
     v.srcObject = stream;
     await v.play();
@@ -274,28 +321,35 @@ export default function SessionsPage() {
       await tf.setBackend("cpu");
       await tf.ready();
     }
+
+    // ✅ Use lite to avoid freezing
     const detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.BlazePose,
       {
         runtime: "mediapipe",
-        modelType: "full",
+        modelType: "lite",
         solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/pose",
       } as any
     );
+
     detectorRef.current = detector;
   }
 
   function cleanup() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+
     if (detectorRef.current) {
       detectorRef.current.dispose();
       detectorRef.current = null;
     }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+
+    processingRef.current = false;
   }
 
   function analyzeAndCount(keypoints: KP[]) {
@@ -309,15 +363,18 @@ export default function SessionsPage() {
       const l0 = getKP(keypoints, left[0], minScore);
       const l1 = getKP(keypoints, left[1], minScore);
       const l2 = getKP(keypoints, left[2], minScore);
+
       const r0 = getKP(keypoints, right[0], minScore);
       const r1 = getKP(keypoints, right[1], minScore);
       const r2 = getKP(keypoints, right[2], minScore);
+
       const lCount = Number(!!l0) + Number(!!l1) + Number(!!l2);
       const rCount = Number(!!r0) + Number(!!r1) + Number(!!r2);
-      if (lCount === 3) return { a: l0!, b: l1!, c: l2!, side: "left" as const };
-      if (rCount === 3) return { a: r0!, b: r1!, c: r2!, side: "right" as const };
-      if (lCount >= rCount && lCount >= 2) return { a: l0!, b: l1!, c: l2!, side: "left" as const };
-      if (rCount >= 2) return { a: r0!, b: r1!, c: r2!, side: "right" as const };
+
+      if (lCount === 3) return { a: l0!, b: l1!, c: l2! };
+      if (rCount === 3) return { a: r0!, b: r1!, c: r2! };
+      if (lCount >= rCount && lCount >= 2) return { a: l0!, b: l1!, c: l2! };
+      if (rCount >= 2) return { a: r0!, b: r1!, c: r2! };
       return null;
     };
 
@@ -327,27 +384,29 @@ export default function SessionsPage() {
     const rw = getKP(keypoints, "right_wrist", 0.35);
     const la = getKP(keypoints, "left_ankle", 0.35);
     const ra = getKP(keypoints, "right_ankle", 0.35);
-    const shoulderWidth = ls && rs ? Math.max(1, Math.abs(ls.x - rs.x)) : 220;
+
+    const shoulderWidth =
+      ls && rs ? Math.max(1, Math.abs(ls.x - rs.x)) : 220;
+
     const COOLDOWN_MS = 650;
 
-    // ✅ ONLY change is here: when rep is counted, also award team points.
     const tryCountRep = (repPose: boolean, resetPose: boolean) => {
       if (resetPose) repArmedRef.current = true;
-      if (repPose && repArmedRef.current && now - lastRepTimeRef.current > COOLDOWN_MS) {
+
+      if (
+        repPose &&
+        repArmedRef.current &&
+        now - lastRepTimeRef.current > COOLDOWN_MS
+      ) {
         repArmedRef.current = false;
         lastRepTimeRef.current = now;
 
         setRepCount((c) => c + 1);
-
-        // ✅ add points for the rep (does not touch TF loop)
         awardTeamPoints(pointsPerRep(selectedExercise));
-
         return true;
       }
       return false;
     };
-
-    let localHint = "";
 
     if (selectedExercise === "squat") {
       const leg = pickSide(
@@ -355,11 +414,23 @@ export default function SessionsPage() {
         ["right_hip", "right_knee", "right_ankle"],
         0.4
       );
-      if (!leg) { setHint("Move back so hips/knees/ankles are visible."); setDebug(""); return; }
+
+      if (!leg) {
+        setHint("Move back so hips/knees/ankles are visible.");
+        setDebug("");
+        return;
+      }
+
       const kneeAng = angleABC(leg.a, leg.b, leg.c);
       const counted = tryCountRep(kneeAng < 125, kneeAng > 165);
-      localHint = counted ? "Rep counted — return to standing to arm the next rep." : kneeAng < 125 ? "Nice depth — now stand tall to reset." : "Stand tall, then squat down to count a rep.";
-      setHint(localHint);
+
+      setHint(
+        counted
+          ? "Rep counted — return to standing to arm the next rep."
+          : kneeAng < 125
+          ? "Nice depth — now stand tall to reset."
+          : "Stand tall, then squat down to count a rep."
+      );
       setDebug(`kneeAngle=${Math.round(kneeAng)}°`);
       return;
     }
@@ -370,65 +441,140 @@ export default function SessionsPage() {
         ["right_shoulder", "right_elbow", "right_wrist"],
         0.4
       );
-      if (!arm) { setHint("Show shoulders, elbows, and wrists for push-up tracking."); setDebug(""); return; }
+
+      if (!arm) {
+        setHint("Show shoulders, elbows, and wrists for push-up tracking.");
+        setDebug("");
+        return;
+      }
+
       const elbowAng = angleABC(arm.a, arm.b, arm.c);
       const counted = tryCountRep(elbowAng < 120, elbowAng > 170);
-      localHint = counted ? "Rep counted — extend arms to arm the next rep." : elbowAng < 120 ? "Good depth — press up to reset." : "Lower down (bend elbows) to count a rep.";
-      setHint(localHint);
+
+      setHint(
+        counted
+          ? "Rep counted — extend arms to arm the next rep."
+          : elbowAng < 120
+          ? "Good depth — press up to reset."
+          : "Lower down (bend elbows) to count a rep."
+      );
       setDebug(`elbowAngle=${Math.round(elbowAng)}°`);
       return;
     }
 
     if (selectedExercise === "jumping_jacks") {
-      if (!ls || !rs || !lw || !rw || !la || !ra) { setHint("Show wrists, ankles, and shoulders for jumping jack tracking."); setDebug(""); return; }
+      if (!ls || !rs || !lw || !rw || !la || !ra) {
+        setHint("Show wrists, ankles, and shoulders for jumping jack tracking.");
+        setDebug("");
+        return;
+      }
+
       const shouldersY = (ls.y + rs.y) / 2;
+
       const handsUp = lw.y < shouldersY - 30 && rw.y < shouldersY - 30;
+
       const ankleSpan = Math.abs(la.x - ra.x) / shoulderWidth;
       const feetApart = ankleSpan > 1.35;
+
       const handsDown = lw.y > shouldersY + 25 && rw.y > shouldersY + 25;
       const feetTogether = ankleSpan < 0.95;
-      const counted = tryCountRep(handsUp && feetApart, handsDown && feetTogether);
-      localHint = counted ? "Rep counted — return to center (hands down + feet together)." : handsUp && feetApart ? "Nice — now return to center to arm the next rep." : "Open (hands up + feet out) to count a rep.";
-      setHint(localHint);
-      setDebug(`ankleSpan=${ankleSpan.toFixed(2)} handsUp=${handsUp ? "Y" : "N"}`);
+
+      const counted = tryCountRep(
+        handsUp && feetApart,
+        handsDown && feetTogether
+      );
+
+      setHint(
+        counted
+          ? "Rep counted — return to center (hands down + feet together)."
+          : handsUp && feetApart
+          ? "Nice — now return to center to arm the next rep."
+          : "Open (hands up + feet out) to count a rep."
+      );
+      setDebug(
+        `ankleSpan=${ankleSpan.toFixed(2)} handsUp=${handsUp ? "Y" : "N"}`
+      );
       return;
     }
   }
 
+  // ✅ No-freeze TF loop (prevents overlapping async inference)
   async function loop() {
     const v = videoRef.current;
     const c = canvasRef.current;
     const detector = detectorRef.current;
+
     if (!v || !c || !detector) return;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    const w = v.videoWidth;
-    const h = v.videoHeight;
-    if (w === 0 || h === 0) { rafRef.current = requestAnimationFrame(loop); return; }
-    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const poses = await detector.estimatePoses(v, { maxPoses: 1, flipHorizontal: true });
-    ctx.clearRect(0, 0, w, h);
-    const pose = poses[0];
-    if (pose?.keypoints?.length) {
-      ctx.save();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,255,255,.75)";
-      ctx.fillStyle = "rgba(255,176,32,.9)";
-      for (const [aName, bName] of EDGES) {
-        const a = getKP(pose.keypoints, aName, 0.35);
-        const b = getKP(pose.keypoints, bName, 0.35);
-        if (a && b) drawLine(ctx, a, b);
-      }
-      for (const kp of pose.keypoints) {
-        if ((kp.score ?? 1) > 0.5) drawKeypoint(ctx, kp);
-      }
-      ctx.restore();
-      analyzeAndCount(pose.keypoints);
-    } else {
-      setHint("No pose detected — step back and face the camera.");
-      setDebug("");
+
+    if (processingRef.current) {
+      rafRef.current = requestAnimationFrame(loop);
+      return;
     }
-    rafRef.current = requestAnimationFrame(loop);
+    processingRef.current = true;
+
+    try {
+      const ctx = c.getContext("2d");
+      if (!ctx) return;
+
+      const w = v.videoWidth;
+      const h = v.videoHeight;
+
+      if (w === 0 || h === 0) {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
+      if (c.width !== w || c.height !== h) {
+        c.width = w;
+        c.height = h;
+      }
+
+      const poses = await detector.estimatePoses(v, {
+        maxPoses: 1,
+        flipHorizontal: true,
+      });
+
+      ctx.clearRect(0, 0, w, h);
+
+      const pose = poses[0];
+      if (pose?.keypoints?.length) {
+        ctx.save();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(255,255,255,.75)";
+        ctx.fillStyle = "rgba(255,176,32,.9)";
+
+        for (const [aName, bName] of EDGES) {
+          const a = getKP(pose.keypoints, aName, 0.35);
+          const b = getKP(pose.keypoints, bName, 0.35);
+          if (a && b) drawLine(ctx, a, b);
+        }
+
+        for (const kp of pose.keypoints) {
+          if ((kp.score ?? 1) > 0.5) drawKeypoint(ctx, kp);
+        }
+
+        ctx.restore();
+
+        // throttle state updates a bit (reduces rerender spam)
+        const now = performance.now();
+        if (now - lastUiUpdateRef.current > 120) {
+          lastUiUpdateRef.current = now;
+          analyzeAndCount(pose.keypoints);
+        }
+      } else {
+        const now = performance.now();
+        if (now - lastUiUpdateRef.current > 200) {
+          lastUiUpdateRef.current = now;
+          setHint("No pose detected — step back and face the camera.");
+          setDebug("");
+        }
+      }
+    } catch (e) {
+      console.error("TF loop error:", e);
+    } finally {
+      processingRef.current = false;
+      rafRef.current = requestAnimationFrame(loop);
+    }
   }
 
   async function start() {
@@ -437,11 +583,14 @@ export default function SessionsPage() {
       setHint("");
       setDebug("");
       setRepCount(0);
-      phaseRef.current = "up";
       repArmedRef.current = true;
       lastRepTimeRef.current = 0;
+      lastUiUpdateRef.current = 0;
+      processingRef.current = false;
+
       await setupCamera();
       await setupDetector();
+
       setStatus("running");
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) {
@@ -457,33 +606,71 @@ export default function SessionsPage() {
     setStatus("idle");
   }
 
+  // cleanup on unmount
   useEffect(() => {
     return () => cleanup();
   }, []);
 
+  // pause TF loop when tab hidden (prevents weird stalls)
   useEffect(() => {
-    const fetchData = () => {
-      fetch(`${API}/store/sessions/all`)
-        .then(r => r.json())
-        .then(data => setSessionData(data))
-        .catch(err => console.error("sessions error:", err));
+    const onVis = () => {
+      if (document.hidden) {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        processingRef.current = false;
+      } else {
+        if (status === "running" && !rafRef.current) {
+          rafRef.current = requestAnimationFrame(loop);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [status]);
 
-      fetch(`${API}/store/latest`)
-        .then(r => r.json())
-        .then(data => setLatest(data))
-        .catch(err => console.error("latest error:", err));
+  // Apple Watch / backend polling (unchanged behavior, but safer with abort)
+  useEffect(() => {
+    const controller = new AbortController();
 
-      fetch(`${API}/store/workout/live`)
-        .then(r => r.json())
-        .then(data => setSessionData((prev: any) => ({ ...prev, workout_metrics: data.metrics ?? [] })))
-        .catch(err => console.error("metrics error:", err));
+    const fetchData = async () => {
+      try {
+        const [sessionsRes, latestRes, metricsRes] = await Promise.all([
+          fetch(`${API}/store/sessions/all`, { signal: controller.signal }),
+          fetch(`${API}/store/latest`, { signal: controller.signal }),
+          fetch(`${API}/store/workout/live`, { signal: controller.signal }),
+        ]);
+
+        if (sessionsRes.ok) {
+          const data = await sessionsRes.json();
+          setSessionData(data);
+        }
+
+        if (latestRes.ok) {
+          const data = await latestRes.json();
+          setLatest(data);
+        }
+
+        if (metricsRes.ok) {
+          const data = await metricsRes.json();
+          setSessionData((prev: any) => ({
+            ...(prev ?? {}),
+            workout_metrics: data.metrics ?? [],
+          }));
+        }
+      } catch (err) {
+        // ignore aborts
+      }
     };
 
-    fetchData(); // fetch immediately on load
-    const interval = setInterval(fetchData, 5000); // then every 5 seconds
-    return () => clearInterval(interval); // cleanup on unmount
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, []);
 
+  // reset rep state on exercise change
   useEffect(() => {
     setRepCount(0);
     setHint("");
@@ -508,8 +695,14 @@ export default function SessionsPage() {
           </Link>
           <div />
           <div className="rr-nav__cta">
-            <Link className="rr-btn rr-btn--ghost rr-btn--nav" to="/dashboard">Back</Link>
-            <button className="rr-btn rr-btn--primary rr-btn--nav" type="button" onClick={() => navigate("/sessions")}>
+            <Link className="rr-btn rr-btn--ghost rr-btn--nav" to="/dashboard">
+              Back
+            </Link>
+            <button
+              className="rr-btn rr-btn--primary rr-btn--nav"
+              type="button"
+              onClick={() => navigate("/sessions")}
+            >
               Sessions
             </button>
           </div>
@@ -522,61 +715,107 @@ export default function SessionsPage() {
             <h2 className="rr-h2">Session</h2>
             <p className="rr-lead">
               {mission?.missionTitle ? (
-                <>Mission: <span style={{ fontWeight: 950 }}>{mission.missionTitle}</span> — pick an exercise and start the camera.</>
+                <>
+                  Mission:{" "}
+                  <span style={{ fontWeight: 950 }}>{mission.missionTitle}</span>{" "}
+                  — pick an exercise and start the camera.
+                </>
               ) : (
                 "Pick an exercise and start the camera."
               )}
             </p>
 
-            {/* ── Health Metrics ── */}
+            {/* Health Metrics */}
             <div className="rr-feature" style={{ marginTop: 18 }}>
               <h3 style={{ marginTop: 0 }}>Health Metrics from Apple Watch</h3>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">Heart Rate</div>
-                  <div className="rr-mini__v">{fmt(latest?.heart_rate)} {latest?.heart_rate > 0 ? "bpm" : ""}</div>
+                  <div className="rr-mini__v">
+                    {fmt(latest?.heart_rate)}{" "}
+                    {latest?.heart_rate > 0 ? "bpm" : ""}
+                  </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">Resting HR</div>
-                  <div className="rr-mini__v">{fmt(latest?.resting_heart_rate)} {latest?.resting_heart_rate > 0 ? "bpm" : ""}</div>
+                  <div className="rr-mini__v">
+                    {fmt(latest?.resting_heart_rate)}{" "}
+                    {latest?.resting_heart_rate > 0 ? "bpm" : ""}
+                  </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">HRV</div>
-                  <div className="rr-mini__v">{fmt(latest?.hrv, 1)} {latest?.hrv > 0 ? "ms" : ""}</div>
+                  <div className="rr-mini__v">
+                    {fmt(latest?.hrv, 1)} {latest?.hrv > 0 ? "ms" : ""}
+                  </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">Oxygen Sat</div>
                   <div className="rr-mini__v">
-                    {latest?.oxygen_saturation > 0 ? `${(latest.oxygen_saturation * 100).toFixed(1)}%` : "--"}
+                    {latest?.oxygen_saturation > 0
+                      ? `${(latest.oxygen_saturation * 100).toFixed(1)}%`
+                      : "--"}
                   </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">HR Recovery</div>
-                  <div className="rr-mini__v">{fmt(latest?.heart_rate_recovery)} {latest?.heart_rate_recovery > 0 ? "bpm" : ""}</div>
+                  <div className="rr-mini__v">
+                    {fmt(latest?.heart_rate_recovery)}{" "}
+                    {latest?.heart_rate_recovery > 0 ? "bpm" : ""}
+                  </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">AFib Burden</div>
                   <div className="rr-mini__v">
-                    {latest?.afib_burden > 0 ? `${(latest.afib_burden * 100).toFixed(1)}%` : "--"}
+                    {latest?.afib_burden > 0
+                      ? `${(latest.afib_burden * 100).toFixed(1)}%`
+                      : "--"}
                   </div>
                 </div>
                 <div className="rr-mini" style={{ flex: "1 1 140px" }}>
                   <div className="rr-mini__k">VO2 Max</div>
-                  <div className="rr-mini__v">{fmt(latest?.vo2_max, 1)} {latest?.vo2_max > 0 ? "ml/kg·min" : ""}</div>
+                  <div className="rr-mini__v">
+                    {fmt(latest?.vo2_max, 1)}{" "}
+                    {latest?.vo2_max > 0 ? "ml/kg·min" : ""}
+                  </div>
                 </div>
               </div>
-              {/* Heart Rate Graph */}
+
               <HeartRateGraph metrics={sessionData?.workout_metrics ?? []} />
 
-              <div style={{ marginTop: 12, color: "rgba(255,255,255,.4)", fontWeight: 700, fontSize: 12 }}>
+              <div
+                style={{
+                  marginTop: 12,
+                  color: "rgba(255,255,255,.4)",
+                  fontWeight: 700,
+                  fontSize: 12,
+                }}
+              >
                 {latest
-                  ? `Last updated: ${new Date(latest.timestamp * 1000).toLocaleString()}`
+                  ? `Last updated: ${new Date(
+                      latest.timestamp * 1000
+                    ).toLocaleString()}`
                   : "Waiting for data from iPhone..."}
               </div>
             </div>
 
-            {/* ── Exercise picker ── */}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 18 }}>
+            {/* Exercise picker */}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginTop: 18,
+              }}
+            >
               <div className="rr-links" style={{ justifySelf: "start" }}>
                 {exercises.map((ex) => (
                   <button
@@ -585,34 +824,73 @@ export default function SessionsPage() {
                     type="button"
                     onClick={() => setSelectedExercise(ex.key)}
                     style={{
-                      background: selectedExercise === ex.key ? "rgba(255,255,255,.10)" : "rgba(255,255,255,.06)",
-                      borderColor: selectedExercise === ex.key ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.14)",
+                      background:
+                        selectedExercise === ex.key
+                          ? "rgba(255,255,255,.10)"
+                          : "rgba(255,255,255,.06)",
+                      borderColor:
+                        selectedExercise === ex.key
+                          ? "rgba(255,255,255,.22)"
+                          : "rgba(255,255,255,.14)",
                     }}
                   >
                     {ex.name}
                   </button>
                 ))}
               </div>
+
               {status !== "running" ? (
-                <button className="rr-btn rr-btn--primary" type="button" onClick={start}>
-                  {status === "loading" ? "Starting..." : "Start Camera + BlazePose"}
+                <button
+                  className="rr-btn rr-btn--primary"
+                  type="button"
+                  onClick={start}
+                >
+                  {status === "loading"
+                    ? "Starting..."
+                    : "Start Camera + BlazePose"}
                 </button>
               ) : (
-                <button className="rr-btn rr-btn--ghost" type="button" onClick={stop}>Stop</button>
+                <button
+                  className="rr-btn rr-btn--ghost"
+                  type="button"
+                  onClick={stop}
+                >
+                  Stop
+                </button>
               )}
             </div>
 
             <div style={{ marginTop: 14 }}>
-              <div style={{ color: "rgba(255,255,255,.72)", fontWeight: 800 }}>
+              <div
+                style={{
+                  color: "rgba(255,255,255,.72)",
+                  fontWeight: 800,
+                }}
+              >
                 {exercises.find((e) => e.key === selectedExercise)?.description}
               </div>
             </div>
 
-            {/* ── Camera + feedback grid ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 14, marginTop: 18 }}>
+            {/* Camera + feedback */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1.2fr",
+                gap: 14,
+                marginTop: 18,
+              }}
+            >
               <div className="rr-feature">
                 <h3 style={{ marginTop: 0 }}>Live Feedback</h3>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 10,
+                  }}
+                >
                   <div className="rr-mini" style={{ flex: "1 1 160px" }}>
                     <div className="rr-mini__k">Status</div>
                     <div className="rr-mini__v">
@@ -622,26 +900,52 @@ export default function SessionsPage() {
                       {status === "error" && "Error"}
                     </div>
                   </div>
+
                   <div className="rr-mini" style={{ flex: "1 1 160px" }}>
                     <div className="rr-mini__k">Reps</div>
                     <div className="rr-mini__v">{repCount}</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 10, color: "rgba(255,255,255,.55)", fontWeight: 700 }}>{debug}</div>
+
+                <div
+                  style={{
+                    marginTop: 10,
+                    color: "rgba(255,255,255,.55)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {debug}
+                </div>
+
                 <div style={{ marginTop: 12 }} className="rr-note">
                   <span className="rr-note__icon">🧠</span>
                   <span>{hint || "Start the camera to get feedback."}</span>
                 </div>
-                <div style={{ marginTop: 12, color: "rgba(255,255,255,.6)", fontWeight: 700, lineHeight: 1.5 }}>
-                  Tip: Stand back so your full body is visible. Good lighting helps pose tracking a lot.
+
+                <div
+                  style={{
+                    marginTop: 12,
+                    color: "rgba(255,255,255,.6)",
+                    fontWeight: 700,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Tip: Stand back so your full body is visible. Good lighting
+                  helps pose tracking a lot.
                 </div>
               </div>
 
-              <div className="rr-card rr-card--glass" style={{ maxWidth: "100%", position: "relative" }}>
+              <div
+                className="rr-card rr-card--glass"
+                style={{ maxWidth: "100%", position: "relative" }}
+              >
                 <div className="rr-card__top">
                   <div className="rr-pill">BlazePose</div>
-                  <div className="rr-chip">{status === "running" ? "Live" : "Ready"}</div>
+                  <div className="rr-chip">
+                    {status === "running" ? "Live" : "Ready"}
+                  </div>
                 </div>
+
                 <div style={{ padding: 12, position: "relative" }}>
                   <video
                     ref={videoRef}
@@ -656,6 +960,7 @@ export default function SessionsPage() {
                       transform: "scaleX(-1)",
                     }}
                   />
+
                   <canvas
                     ref={canvasRef}
                     style={{
@@ -668,19 +973,30 @@ export default function SessionsPage() {
                     }}
                   />
                 </div>
+
                 <div className="rr-card__bottom">
                   <div className="rr-note">
                     <span className="rr-note__icon">📌</span>
-                    <span>This is demo-grade feedback (not medical). Next step: tighten thresholds per mission + add "form score".</span>
+                    <span>
+                      This is demo-grade feedback (not medical). Next step:
+                      tighten thresholds per mission + add "form score".
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ── Past Sessions ── */}
+            {/* Past Sessions */}
             <div className="rr-feature" style={{ marginTop: 18 }}>
               <h3 style={{ marginTop: 0 }}>Past Sessions</h3>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
                 <div className="rr-mini" style={{ flex: "1 1 160px" }}>
                   <div className="rr-mini__k">Workout Sessions</div>
                   <div className="rr-mini__v">{workoutSessions.length}</div>
@@ -690,17 +1006,30 @@ export default function SessionsPage() {
                   <div className="rr-mini__v">{ecgSessions.length}</div>
                 </div>
               </div>
+
               {workoutSessions.length > 0 ? (
                 <div style={{ marginTop: 12 }}>
                   {workoutSessions.map((s: any) => (
-                    <div key={s.session_id} className="rr-mini" style={{ marginTop: 8 }}>
+                    <div
+                      key={s.session_id}
+                      className="rr-mini"
+                      style={{ marginTop: 8 }}
+                    >
                       <div className="rr-mini__k">{s.session_id}</div>
-                      <div className="rr-mini__v">{new Date(s.start_time * 1000).toLocaleString()}</div>
+                      <div className="rr-mini__v">
+                        {new Date(s.start_time * 1000).toLocaleString()}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ marginTop: 10, color: "rgba(255,255,255,.45)", fontWeight: 700 }}>
+                <div
+                  style={{
+                    marginTop: 10,
+                    color: "rgba(255,255,255,.45)",
+                    fontWeight: 700,
+                  }}
+                >
                   No sessions yet — send data from your iPhone to see them here.
                 </div>
               )}
