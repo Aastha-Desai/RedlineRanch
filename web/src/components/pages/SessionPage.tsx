@@ -232,6 +232,29 @@ export default function SessionsPage() {
   const repArmedRef = useRef(true);
   const lastRepTimeRef = useRef(0);
 
+  // ✅ NEW: points per rep (you can tweak these)
+  function pointsPerRep(ex: ExerciseKey) {
+    if (ex === "squat") return 10;
+    if (ex === "pushup") return 15;
+    return 12; // jumping_jacks
+  }
+
+  // ✅ NEW: safely add points to the currently selected team (rr_team)
+  function awardTeamPoints(points: number) {
+    try {
+      const raw = localStorage.getItem("rr_team");
+      if (!raw) return; // no team selected yet
+      const team = JSON.parse(raw);
+      const next = {
+        ...team,
+        points: (Number(team.points) || 0) + points,
+      };
+      localStorage.setItem("rr_team", JSON.stringify(next));
+    } catch {
+      // ignore storage errors in demo mode
+    }
+  }
+
   async function setupCamera() {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 540 } },
@@ -307,12 +330,18 @@ export default function SessionsPage() {
     const shoulderWidth = ls && rs ? Math.max(1, Math.abs(ls.x - rs.x)) : 220;
     const COOLDOWN_MS = 650;
 
+    // ✅ ONLY change is here: when rep is counted, also award team points.
     const tryCountRep = (repPose: boolean, resetPose: boolean) => {
       if (resetPose) repArmedRef.current = true;
       if (repPose && repArmedRef.current && now - lastRepTimeRef.current > COOLDOWN_MS) {
         repArmedRef.current = false;
         lastRepTimeRef.current = now;
+
         setRepCount((c) => c + 1);
+
+        // ✅ add points for the rep (does not touch TF loop)
+        awardTeamPoints(pointsPerRep(selectedExercise));
+
         return true;
       }
       return false;
